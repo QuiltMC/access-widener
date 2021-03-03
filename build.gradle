@@ -3,26 +3,27 @@ plugins {
 	id "java-library"
 	id "checkstyle"
 	id "maven-publish"
-	id "me.modmuss50.remotesign" version "0.1.0"
-	id "net.minecrell.licenser" version "0.4.1"
+	// TODO: Figure out signing
+	//id "me.modmuss50.remotesign" version "0.1.0"
+	id "com.diffplug.spotless" version "5.8.2"
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-group "net.fabricmc"
+group "org.quiltmc"
 archivesBaseName = "access-widener"
 
 def ENV = System.getenv()
 version = "1.0.2"
-logger.lifecycle("Building AccessWidener: " + version)
+logger.lifecycle("Building access-widener: " + version)
 
 repositories {
 	mavenCentral()
 
 	maven {
-		name = "Fabric"
-		url = "https://maven.fabricmc.net/"
+		name = "Quilt"
+		url = "https://maven.quiltmc.org/repository/release"
 	}
 }
 
@@ -41,9 +42,14 @@ dependencies {
 	api "org.ow2.asm:asm-commons:$asmVersion" // For Remapper
 }
 
-license {
-	header project.file("HEADER")
-	include "**/*.java"
+spotless {
+	java {
+		// Do not update headers unless
+		ratchetFrom "origin/master"
+
+		// Use comma separator for openjdk like license headers
+		licenseHeaderFile(project.file("HEADER")).yearSeparator(", ")
+	}
 }
 
 checkstyle {
@@ -60,55 +66,55 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 	from javadoc.destinationDir
 }
 
-if (ENV.SIGNING_SERVER) {
-	remoteSign {
-		requestUrl ENV.SIGNING_SERVER
-		pgpAuthKey ENV.SIGNING_PGP_KEY
-		jarAuthKey ENV.SIGNING_JAR_KEY
-
-		sign (jar, javadocJar, sourcesJar)
-
-		afterEvaluate {
-			sign publishing.publications.mavenJava
-		}
-	}
-}
+//if (ENV.SIGNING_SERVER) {
+//	remoteSign {
+//		requestUrl ENV.SIGNING_SERVER
+//		pgpAuthKey ENV.SIGNING_PGP_KEY
+//		jarAuthKey ENV.SIGNING_JAR_KEY
+//
+//		sign (jar, javadocJar, sourcesJar)
+//
+//		afterEvaluate {
+//			sign publishing.publications.mavenJava
+//		}
+//	}
+//}
 
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
-			if (ENV.SIGNING_SERVER) {
-				artifact(signJar) {
-					classifier null
-				}
-
-				artifact(signJavadocJar) {
-					classifier "javadoc"
-				}
-
-				artifact(signSourcesJar) {
-					classifier "sources"
-				}
-			} else {
+//			if (ENV.SIGNING_SERVER) {
+//				artifact(signJar) {
+//					classifier null
+//				}
+//
+//				artifact(signJavadocJar) {
+//					classifier "javadoc"
+//				}
+//
+//				artifact(signSourcesJar) {
+//					classifier "sources"
+//				}
+//			} else {
 				from components.java
 
 				artifact(javadocJar)
-			}
+//			}
 
 			pom {
 				name = 'access-widener'
-				description = 'Access widener provides a way to loosen the access limits of classes in a data drive manner.'
-				url = 'https://github.com/FabricMC/access-widener'
+				description = 'Access widener provides a way to loosen the access limits of classes in a data driven manner.'
+				url = 'https://github.com/QuiltMC/access-widener'
 
 				scm {
-					connection = "scm:git:https://github.com/FabricMC/access-widener.git"
-					developerConnection = "scm:git:git@github.com:FabricMC/access-widener.git"
-					url = "https://github.com/FabricMC/access-widener"
+					connection = "scm:git:https://github.com/QuiltMC/access-widener.git"
+					developerConnection = "scm:git:git@github.com:QuiltMC/access-widener.git"
+					url = "https://github.com/QuiltMC/access-widener"
 				}
 
 				issueManagement {
 					system = "GitHub"
-					url = "https://github.com/FabricMC/access-widener/issues"
+					url = "https://github.com/QuiltMC/access-widener/issues"
 				}
 
 				licenses {
@@ -120,15 +126,9 @@ publishing {
 
 				developers {
 					developer {
-						id = "modmuss50"
-						name = "modmuss50"
-						email = "modmuss50@fabricmc.net"
-					}
-
-					developer {
-						id = "sfPlayer"
-						name = "Player"
-						email = "player@fabricmc.net"
+						id = "i509VCB"
+						name = "i509VCB"
+						email = "git@i509.me"
 					}
 				}
 			}
@@ -140,8 +140,9 @@ publishing {
 
 		if (ENV.MAVEN_URL) {
 			repositories.maven {
-				name "fabric"
+				name "quilt"
 				url ENV.MAVEN_URL
+
 				credentials {
 					username ENV.MAVEN_USERNAME
 					password ENV.MAVEN_PASSWORD
@@ -149,29 +150,15 @@ publishing {
 			}
 		}
 
-		if (ENV.MAVEN_CENTRAL_URL) {
-			repositories.maven {
-				name "central"
-				url ENV.MAVEN_CENTRAL_URL
-				credentials {
-					username ENV.MAVEN_CENTRAL_USERNAME
-					password ENV.MAVEN_CENTRAL_PASSWORD
-				}
-			}
-		}
+//		if (ENV.MAVEN_CENTRAL_URL) {
+//			repositories.maven {
+//				name "central"
+//				url ENV.MAVEN_CENTRAL_URL
+//				credentials {
+//					username ENV.MAVEN_CENTRAL_USERNAME
+//					password ENV.MAVEN_CENTRAL_PASSWORD
+//				}
+//			}
+//		}
 	}
 }
-
-// A task to ensure that the version being released has not already been released.
-task checkVersion {
-	doFirst {
-		def xml = new URL("https://maven.fabricmc.net/net/fabricmc/access-widener/maven-metadata.xml").text
-		def metadata = new XmlSlurper().parseText(xml)
-		def versions = metadata.versioning.versions.version*.text();
-		if (versions.contains(version)) {
-			throw new RuntimeException("${version} has already been released!")
-		}
-	}
-}
-
-publish.mustRunAfter checkVersion
