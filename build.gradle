@@ -59,11 +59,7 @@ checkstyle {
 
 java {
 	withSourcesJar()
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-	archiveClassifier = 'javadoc'
-	from javadoc.destinationDir
+	withJavadocJar()
 }
 
 //if (ENV.SIGNING_SERVER) {
